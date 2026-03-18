@@ -1,13 +1,13 @@
 ---
 name: code review guideline skill
-description: describe how to review code with best practices, use when user ask for help with code review or you need to review the code you wrote
+description: describe how to review code with best practices, use when user ask for help with code review or you need to implement the code
 ---
 
 # code review guidelines
 the document outlines the best practices for what a good code looks like, a good codebase should follow these guidelines.
 
 ## when to use this skill
-when user ask to review code, ask help with the code review or when you need to review the code you wrote
+when user ask to review code, ask help with the code review or when you need to implement the code
 
 ## guidelines
 + don't write any comments that describe what the code does in the codebase, write comments only if the code is not obvious or if the user asks for it
