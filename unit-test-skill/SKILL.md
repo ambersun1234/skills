@@ -1,45 +1,42 @@
 ---
-name: unit test skill
-description: describe how to write unit tests or general tests for the codebase, use when you need to add or modify unit tests to the codebase
+name: unit-test-skill
+description: Use BEFORE writing, editing or running unit tests (*_test.go, *.test.ts, JUnit), adding a test case, mocking (mockery, gomonkey), or fixing any bug (bug fixes need a regression case). Covers 'Should <outcome> if <condition>' naming, fixed test data, full branch coverage; Go: table-driven tests, keyed literals, expected/wantErr fields, no comments in tests, go test -gcflags=all=-l; Java: parameterized tests.
 ---
 
-# unit test best practices
-the document outlines the best practices for writing unit tests for the codebase.
+# Unit tests
 
-## when to use this skill
-when you need to add or modify unit tests to the codebase
+## General
+- Test one function's scope only. Mock its external dependencies (other packages, third-party code): whatever can be mocked, mock.
+- Mock through DI: swap the dependency's implementation. If the function has no seam for that, add one (see Go below); if that means a large refactor beyond the dependency being mocked, point it out and ask first.
+- Build input data in the test itself; don't call another function to produce it.
+- Use fixed test data so a case always reproduces. Random values are fine only for fields the test doesn't check (e.g. a seeded record's id).
+- Compare against a constant or enum directly; check the constant's own value in a separate case.
+- Name cases "Should <expected outcome> if/when <condition>" (e.g. "Should return an error when the user is not found"). The outcome half must match what the body actually asserts.
+- Cover every branch of the function's own logic. Functions run layer by layer: invalid input an outer layer already rejects isn't retested in the inner one. An edge case belongs to a function only if its own code branches on it.
+- Use before/after hooks for setup and teardown.
 
-## best practices
-+ an unit test should focus on a function scope only, don't cover the logic that is beyond the function scope
-+ if there's another sub function call inside the function, you should mock the sub function call and test the function logic
-+ if you found out that the function didn't have proper abstraction layer, you should refactor first
-+ if the function depend on the input data other function produce, you shouldn't call the other function to produce the input data, you should construct the input data on it's own
-+ for the test data, you should always use fixed data, don't use random data to ensure we can easily reproduce the test case
-+ for test data that are not crucial to the test case, for example, the id of the seeding data(and are not required to do the validation), random data is acceptable, but you should always have a fixed data for the test case
-+ if you need to validate against constant or enum value, just use the constant or enum value to compare directly
-+ to validate constant or enum value, write another test case to ensure their value is correct
-+ the test case should named properly, the name should be clear and concise
-+ name each test case as "Should <expected outcome> if/when <condition>" (e.g. "Should return true if all values are valid", "Should return an error when the user is not found") — state the expected result first, then the condition that produces it
-+ the "<expected outcome>" half of the name must literally match what the test body actually asserts, not just gesture at it
-+ place the unit test case file besides the implementation file, it should be in the same directory as the implementation file
-+ the unit test should cover every possible code path of the function, consider every possible branch, you shouldn't skip any branch. you may assume the input data is sanitized by the caller, don't write test case that pass the invalid input data to the function
-+ an edge case only belongs to the function under test if that function's own code actually branches on it
-+ you should always try to use before and after hook to setup and teardown the entity
+## Go
+- Put the test file next to the implementation, in the same directory.
+- Always table-driven: named cases through one shared body, never one test function per case, even with a single case today. Cases asserting the same shape share a table.
+- Fill in every field of every case, with keyed literals (`{name: "...", expected: "..."}`), never positional.
+- `want` is only for an expected error (`wantErr bool`). An expected value is `expected` / `expectedX` (e.g. `expectedOrders`).
+- Mixing success and error cases: one unconditional `require.ErrorIs(t, err, tc.expectedError)` then `require.Equal(t, tc.expected, got)`, not `if tc.expectedError != nil { ... return }`. `errors.Is(err, nil)` equals `err == nil`.
+- When a case only cares that the call fails, use `wantErr bool` and `require.Equal(t, tc.wantErr, err != nil)`, not `EqualError`/`ErrorContains` on the text, which churns whenever upstream wording changes. Assert the exact message only when formatting it is the behaviour under test.
+- Mock interfaces with mockery (testify template), never hand-written fakes (gomonkey patching, below, is a separate last resort, not a fake). In a repo without mockery, add a `.mockery.yaml` (mirror an existing one if there is one).
+  - Mocks are usually gitignored, so a fresh worktree fails with "no required module provides package .../mocks". Run the repo's mock task (e.g. `task generate-mock`); never copy `mocks/` from another checkout, it may be stale.
+  - A mock of an interface in the test's own package usually reuses that package's name.
+  - `.On("Method", args...).Return(...)`; `.Once()`, `.Times(n)` or `.Maybe()` (zero or more) to pin call counts.
+- Mock through an interface; if there is none, create one, named with a trailing `I`.
+  - Every implementation you own goes behind an interface listing its whole exported method set, not just what this caller uses. Switch every injection point of that dependency (struct fields, package-level vars) to it; that is part of the task, not an unrelated cleanup.
+  - For third-party code, mock only the parts you actually use.
+  - No narrow per-caller interface plus a one-method adapter wrapping a package function (e.g. `ConfigReaderI{GetValue}` + an `envConfig{}` adapter). Turn the functions into methods on a struct with one full interface (see the dependency-inversion section of the https://ambersuncreates.com devops unit-test post).
+  - Only when something can't be abstracted behind an interface (a package function you don't own, a hard-wired package-level var), patch it with gomonkey or a swappable package-level var instead.
+- Footgun: with gomonkey, run with inlining off, `go test -gcflags="all=-l" ./...` (see the repo's unit-test task). A bare `go test ./...` leaves some patches unapplied, and unrelated packages panic (e.g. on a nil client); it looks like a base-branch failure, but CI passes with the flag.
+- Never assert (`require.*`/`assert.*`/`reflect.DeepEqual`) inside `t.Cleanup`; it is for teardown only. Assert in the test body or inside the mock closure. Under gomonkey, a heavy reflect call deferred into `t.Cleanup` can also crash the runtime (`fatal error: invalid pointer found on stack`).
+- No comments in test files at all: no section dividers, not even a "why" for a tricky mock. Compiler directives (`//go:build`) aren't comments and stay.
+- Test gin handlers/middleware with `httptest.NewRequest`/`httptest.NewRecorder` on a minimal `gin.New()` router.
+- One `X_test.go` per `X.go`, never split across several test files. Split the test file only when the source file splits.
 
-# language specific best practices
-## golang
-+ mock interfaces with mockery (testify template), not hand-written fakes — even in a repo that doesn't have mockery set up yet, add a `.mockery.yaml` (mirror an existing one in the codebase, e.g. `portal-api/.mockery.yaml`) rather than falling back to a hand-written fake
-+ when the interface being mocked lives in the same package as its own test file, mockery's generated mock package commonly reuses the source package's name
-+ always try to mock interface, if no interface is available, you should create an interface for the function to mock
-+ if create an interface introduce much more heavy work, consider use gomonkey first
-+ always use table-driven tests
-+ table-driven tests mixing success and error cases, prefer one unconditional `require.ErrorIs(t, err, tc.expectedError)` followed by `require.Equal(t, tc.expected, got)` over manual `if tc.expectedError != nil { ... return }` branching — `errors.Is(err, nil)` is equivalent to `err == nil`
-+ don't write section-divider comments in a test file to separate the tests for different functions
-+ test files carry no comments at all, not even a "why" comment for a non-obvious mock/stub setup
-+ mockery mocks, call them via `.On("MethodName", args...).Return(...)`
-+ mockery mocks you can use `.Once()` to ensure a method is called exactly once, or `.Times(n)` to ensure it's called exactly `n` times, or `.Maybe()` to allow it to be called zero or more times
-+ table-driven tests, fill in every field of every test case struct literal explicitly
-+ always use keyed struct literals (`{name: "...", expected: "..."}`), never positional (`{"...", "..."}`)
-+ in a table-driven test case, `want` is reserved for an expected *error* (`wantErr bool` or similar) — an expected *value* field is named `expected` or `expectedX` (e.g. `expectedProjects`, `expectedClientDBID`), never bare `want`
-+ gin handlers/middleware, test them with `httptest.NewRequest`/`httptest.NewRecorder` against a minimal `gin.New()` router
-+ for golang, name an interface that exists purely to seam a dependency out for mocking with a trailing `I`
+## Java
+- Follow the Maven/Gradle layout (`src/test/java`, mirroring the main package).
+- Use JUnit5 `@ParameterizedTest` + `@MethodSource` for cases that vary only their input, not one `@Test` per input.

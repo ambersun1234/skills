@@ -84,6 +84,9 @@ class CustomFormatter(logging.Formatter):
             f"{ColorPalette.yellow}({record.filename}:{record.lineno}){ColorPalette.reset}"
         )
 
+        if record.exc_info:
+            formatted += "\n" + self.formatException(record.exc_info)
+
         return formatted
 
 

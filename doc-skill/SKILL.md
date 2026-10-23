@@ -1,19 +1,27 @@
 ---
-name: doc skill
-description: describe how to write documentation
+name: doc-skill
+description: Use BEFORE writing any document or prose: README, design doc, spike, ADR, GitHub issue/PR body, plan file. Covers the what-first structure, the sections of a design doc (background, approach, caveats, rollout/rollback), short sentences one idea each, blank lines between paragraphs but not between list items, plain wording.
 ---
 
-# documentation best practices
-the document outlines the best practices for writing all kinds of documentation, for example, architecture design doc, user story doc and postmortem doc
+# Documentation
 
-## when to use this skill
-when you need to write documentation
+Applies to every written document: design docs, user stories, READMEs, issue/PR bodies, plan files.
 
-## best practices
-+ you should always insert some blank lines between paragraph, for better readibility
-+ you should always try to use markdown if possible
-+ you should always try to use bullet point, blockquote and headline to organize your doc if using markdown
-+ you should try to use simple term, easy to understand wording when writing doc
-+ when writing doc, you should always include "why" in the first place
-+ the "why" section should cover all background knowledge associated with the doc, to help user better understand the context
-+ following the "what" section describe what this doc try to elaborate
+## Structure
+- Write in markdown, organized with headings, bullet points and blockquotes.
+- Open with what we're doing and what it is. Then the background (the why): everything a reader needs for the context. Then the details.
+
+## Design docs
+Cover, in this order:
+1. What we're doing.
+2. What it is.
+3. The background.
+4. How we plan to do it.
+5. What to watch out for.
+6. How the change rolls out, and how it rolls back.
+
+## Sentences and spacing
+- Short sentences, one idea each, in simple wording.
+- When a paragraph or bullet does more than one thing (a fact, then why, then an example), split it into separate short sentences, even inside one bullet.
+- A blank line between prose paragraphs, and between ideas within one bullet's text.
+- No blank line between consecutive list items; keep lists tight.
