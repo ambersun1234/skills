@@ -106,28 +106,39 @@ register_hook() {
   echo "settings: registered $name on $event"
 }
 
-main() {
-  check_dependencies
-  mkdir -p "$claude_dir" "$hooks_dir"
-  [ -f "$settings_file" ] || echo '{}' > "$settings_file"
-  cp "$settings_file" "$settings_file.bak-$timestamp"
-
-  prepare_skills_dir
-
+link_skills() {
   local skill_path
   for skill_path in "$repo_dir"/*/SKILL.md; do
     [ -L "$(dirname "$skill_path")" ] && continue
     link_skill "$(basename "$(dirname "$skill_path")")"
   done
+}
+
+main() {
+  check_dependencies
+
+  if [ "${1:-}" = "--skills-only" ]; then
+    prepare_skills_dir
+    link_skills
+    return
+  fi
+
+  mkdir -p "$claude_dir" "$hooks_dir"
+  [ -f "$settings_file" ] || echo '{}' > "$settings_file"
+  cp "$settings_file" "$settings_file.bak-$timestamp"
+
+  prepare_skills_dir
+  link_skills
 
   local name
-  for name in require-skills.sh require-github-workflow.sh skill-reminder.sh; do
+  for name in require-skills.sh require-github-workflow.sh skill-reminder.sh pull-personal-skills.sh; do
     link_hook "$name"
   done
 
   register_hook PreToolUse "Edit|Write|MultiEdit" require-skills.sh
   register_hook PreToolUse "Bash" require-github-workflow.sh
   register_hook UserPromptSubmit "" skill-reminder.sh
+  register_hook SessionStart "" pull-personal-skills.sh
 
   echo "done. settings backup: $settings_file.bak-$timestamp"
 }
