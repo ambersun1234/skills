@@ -22,6 +22,7 @@ description: Use BEFORE writing or editing ANY source code (Go, TypeScript, Java
 - Reference an issue or PR by full URL (`https://github.com/<org>/<repo>/issues/123`), never bare `#123`. GitHub-native text keeps `#123`.
 
 ## Go
+- Name a `sync.WaitGroup` variable `wg`, not a descriptive name like `inFlight`.
 - Name a range variable as the singular of the collection (`for _, group := range groups`), not `g`, `pr`, `v`.
 - In a shared library, don't give a generic name to something that encodes one consumer's convention.
 - Import aliases in camelCase (`authProvider`, not `authprovider`).

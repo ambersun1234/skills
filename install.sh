@@ -131,7 +131,7 @@ main() {
   link_skills
 
   local name
-  for name in require-skills.sh require-github-workflow.sh skill-reminder.sh pull-personal-skills.sh; do
+  for name in require-skills.sh require-github-workflow.sh skill-reminder.sh pull-personal-skills.sh continue-mode.sh continue-stop.sh; do
     link_hook "$name"
   done
 
@@ -139,6 +139,8 @@ main() {
   register_hook PreToolUse "Bash" require-github-workflow.sh
   register_hook UserPromptSubmit "" skill-reminder.sh
   register_hook SessionStart "" pull-personal-skills.sh
+  register_hook UserPromptSubmit "" continue-mode.sh
+  register_hook Stop "" continue-stop.sh
 
   echo "done. settings backup: $settings_file.bak-$timestamp"
 }
